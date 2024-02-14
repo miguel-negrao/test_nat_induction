@@ -105,4 +105,4 @@ natKindToIntegral = fromIntegral $ toNatural $ fromSing $ sing @n
 -- Plus N16 N16             real    0m1,276s (32)
 
 main :: IO ()
-main = print $ (natKindToIntegral @(Plus N16 N16) :: Int)
+main = print (natKindToIntegral @(Plus N16 N16) :: Int)
