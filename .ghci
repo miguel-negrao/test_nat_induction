@@ -1,0 +1,16 @@
+:set -XTypeApplications
+:set -XRankNTypes
+:set -XScopedTypeVariables
+:set -XGADTs
+:set -XDataKinds
+:set -XKindSignatures
+:set -XOverloadedStrings
+:set -XFlexibleContexts
+:set -XDeriveFunctor
+:set -XDeriveFoldable
+:set -XDeriveTraversable
+:set -XStandaloneDeriving
+:set -XTypeOperators
+
+-- :load MyModule1.hs
+-- :load MyModule2.hs
