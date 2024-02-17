@@ -12,6 +12,10 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Main (main) where
 
@@ -19,6 +23,8 @@ import Prelude
 import Data.Singletons
 import Data.Singletons.TH
 import GHC.Natural (Natural)
+import Data.Kind (Constraint)
+import GHC.Base (Type)
 
 $(singletons [d|
     data Nat = Zero | Succ Nat
@@ -86,6 +92,28 @@ deriving instance Eq Nat
 deriving instance Show (SNat n)
 deriving instance Eq (SNat n)
 
+type LEProof :: Nat -> Nat -> Type
+data LEProof n m where
+    LEZero ::  LEProof Zero n
+    LESucc :: LEProof n m -> LEProof (Succ n) (Succ m)
+
+deriving instance Show (LEProof n m)
+deriving instance Eq (LEProof n m)
+
+class LE n m where
+    leProof :: LEProof n m
+
+type LE :: Nat -> Nat -> Constraint
+instance LE Zero n where
+    leProof :: LEProof 'Zero n
+    leProof = LEZero
+
+-- | This class will automatically search for a proof of n < m
+-- using GHC's solver. This is kind of an automated proof search.
+instance (LE n m) => LE (Succ n) (Succ m) where
+    leProof :: LE n m => LEProof ('Succ n) ('Succ m)
+    leProof = LESucc (leProof @n @m)
+
 toNatural :: Nat -> Natural
 toNatural Zero = 0
 toNatural (Succ n) = toNatural n + 1
@@ -104,5 +132,26 @@ natKindToIntegral = fromIntegral $ toNatural $ fromSing $ sing @n
 -- Mult N2 (Mult N10 N10)   real    0m20,147s (200) 
 -- Plus N16 N16             real    0m1,276s (32)
 
+-- ok type erased
+testF1 :: Proxy (Pow N2 N12) -> Int
+testF1 _ = 3
+
+-- ok type erased
+testF2 :: SNat (Pow N2 N12) -> Int
+testF2 _ = 3
+
+-- not ok
+-- Error: cabal: Failed to build exe:prog from inductiveNatTest-0.1.0.0. The
+-- build process was killed (i.e. SIGKILL). The typical reason for this is that
+-- there is not enough memory available (e.g. the OS killed a process using lots
+-- of memory).
+-- testF3 :: SNat (Pow N2 N12) -> Int
+-- testF3 = fromIntegral . toNatural . fromSing
+
+-- not ok
+-- ghc blows up
+--testF4 :: (LE n (Pow N2 N12)) => SNat n -> Int
+--testF4 = undefined
+
 main :: IO ()
-main = print (natKindToIntegral @(Plus N16 N16) :: Int)
+main = print (natKindToIntegral @(Plus N1 N1) :: Int)
